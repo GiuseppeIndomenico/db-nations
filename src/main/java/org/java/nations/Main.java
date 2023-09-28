@@ -42,12 +42,10 @@ public class Main {
 					System.out.println("\n---------------------------------\n");
 				}
 
-				// Chiedi all'utente di inserire l'ID di una country
 				System.out.print("Inserisci l'ID di una country: ");
 				int selectedCountryId = sc.nextInt();
 
-				// Recupera il nome della country selezionata
-				String selectedCountryName = null; // Inizializzalo a null
+				String selectedCountryName = null;
 				String countryNameSql = "SELECT name FROM countries WHERE country_id = ?";
 
 				try (PreparedStatement countryNameStatement = conn.prepareStatement(countryNameSql)) {
@@ -59,7 +57,6 @@ public class Main {
 					}
 				}
 
-				// Verifica se è stato trovato il nome della country
 				if (selectedCountryName != null) {
 					System.out.println("Nazione selezionata: " + selectedCountryName);
 
