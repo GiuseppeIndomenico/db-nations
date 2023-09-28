@@ -22,27 +22,85 @@ public class Main {
 			System.out.print("Inserisci una stringa di ricerca: ");
 			String ricerca = sc.nextLine();
 
-			sc.close();
-			String sql = "SELECT c.name, c2.name AS continent_name, r.name AS region_name " + "FROM countries c "
-					+ "JOIN regions r ON c.region_id = r.region_id "
-					+ "JOIN continents c2 ON r.continent_id = c2.continent_id "
-					+ "WHERE c.name LIKE ?";
+			String sql = "SELECT c.country_id, c.name AS country_name, c2.name AS continent_name, r.name AS region_name "
+					+ "FROM countries c " + "JOIN regions r ON c.region_id = r.region_id "
+					+ "JOIN continents c2 ON r.continent_id = c2.continent_id " + "WHERE c.name LIKE ?";
 
 			try (PreparedStatement statement = conn.prepareStatement(sql)) {
-		
-				
 				statement.setString(1, "%" + ricerca + "%");
-	
 				ResultSet resultSet = statement.executeQuery();
 
 				while (resultSet.next()) {
-					String countryName = resultSet.getString("name");
+					int countryId = resultSet.getInt("country_id");
+					String countryName = resultSet.getString("country_name");
 					String continentName = resultSet.getString("continent_name");
 					String regionName = resultSet.getString("region_name");
-					System.out.println(
-							"Country: " + countryName + "\nContinent: " + continentName + "\nRegion: " + regionName);
+					System.out.println("Country ID: " + countryId);
+					System.out.println("Country: " + countryName);
+					System.out.println("Continent: " + continentName);
+					System.out.println("Region: " + regionName);
 					System.out.println("\n---------------------------------\n");
 				}
+
+				// Chiedi all'utente di inserire l'ID di una country
+				System.out.print("Inserisci l'ID di una country: ");
+				int selectedCountryId = sc.nextInt();
+
+				// Recupera il nome della country selezionata
+				String selectedCountryName = null; // Inizializzalo a null
+				String countryNameSql = "SELECT name FROM countries WHERE country_id = ?";
+
+				try (PreparedStatement countryNameStatement = conn.prepareStatement(countryNameSql)) {
+					countryNameStatement.setInt(1, selectedCountryId);
+					ResultSet countryNameResultSet = countryNameStatement.executeQuery();
+
+					if (countryNameResultSet.next()) {
+						selectedCountryName = countryNameResultSet.getString("name");
+					}
+				}
+
+				// Verifica se è stato trovato il nome della country
+				if (selectedCountryName != null) {
+					System.out.println("Nazione selezionata: " + selectedCountryName);
+
+					// Recupera tutte le lingue parlate in quella country
+					String languageSql = "SELECT l.`language` " + "FROM country_languages cl "
+							+ "JOIN languages l ON cl.language_id = l.language_id " + "WHERE cl.country_id = ?";
+
+					try (PreparedStatement languageStatement = conn.prepareStatement(languageSql)) {
+						languageStatement.setInt(1, selectedCountryId);
+						ResultSet languageResultSet = languageStatement.executeQuery();
+
+						System.out.println("Lingue parlate in questa nazione:");
+						while (languageResultSet.next()) {
+							String language = languageResultSet.getString("language");
+							System.out.println(language);
+						}
+					}
+
+					// Recupera le statistiche più recenti per quella country
+					String statsSql = "SELECT cs.gdp AS PIL, cs.population, cs.`year` " + "FROM country_stats cs "
+							+ "WHERE cs.country_id = ? " + "ORDER BY cs.`year` DESC " + "LIMIT 1";
+
+					try (PreparedStatement statsStatement = conn.prepareStatement(statsSql)) {
+						statsStatement.setInt(1, selectedCountryId);
+						ResultSet statsResultSet = statsStatement.executeQuery();
+
+						System.out.println("\nStatistiche più recenti per questa nazione:");
+						while (statsResultSet.next()) {
+							double gdp = statsResultSet.getDouble("PIL");
+							int population = statsResultSet.getInt("population");
+							int year = statsResultSet.getInt("year");
+							System.out.println("PIL: " + gdp);
+							System.out.println("Popolazione: " + population);
+							System.out.println("Anno: " + year);
+						}
+					}
+				} else {
+					System.out.println("Nazione con ID " + selectedCountryId + " non trovata.");
+				}
+
+				sc.close();
 			}
 		} catch (Exception e) {
 			System.out.println("Errore di connessione o query: " + e.getMessage());
@@ -50,6 +108,5 @@ public class Main {
 
 		System.out.println("\n----------------------------------\n");
 		System.out.println("The end");
-
 	}
 }
